@@ -51,7 +51,11 @@ jobs:
           fi
 
       - name: Import project
-        run: godot --headless --import
+        # Twice: addons that add importers (e.g. dialogue files) are only
+        # active after the first pass, so their files import on the second.
+        run: |
+          godot --headless --import
+          godot --headless --import
 
       - name: "Gate: rule tests"
         run: |

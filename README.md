@@ -68,7 +68,7 @@ A game's addons are listed in `addons.json` and installed into `addons/`, which 
 ```json
 "beam": {
   "url": "https://github.com/donliggett/beam-gd",
-  "checkout": "v0.2.0",
+  "checkout": "v0.2.1",
   "subfolder": "addons/beam"
 }
 ```
@@ -98,6 +98,7 @@ Run from the game's folder, with Godot on PATH as `godot`.
 ```
 godot --headless -s res://tools/addons.gd
 godot --headless --import
+godot --headless --import
 godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests/rules -gexit
 godot --headless --export-release "Web" build/web/index.html
 python -m http.server 8000 -d build/web
@@ -108,10 +109,13 @@ python -m http.server 8000 -d build/web
 ```
 godot --headless -s res://tools/addons.gd
 godot --headless --import
+godot --headless --import
 godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests/rules -gexit
 godot --headless --export-release "Web" build/web/index.html
 python3 -m http.server 8000 -d build/web
 ```
+
+Import runs twice because addons that add importers (dialogue files, for example) only take effect after the first pass. Rule tests run from `tests/rules/` and its subfolders, as set in `.gutconfig.json`.
 
 The web build has to be served over HTTP; opening `index.html` directly from disk won't run it.
 

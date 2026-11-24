@@ -43,4 +43,5 @@ jobs:
         run: |
           godot --headless -s res://tools/addons.gd
           godot --headless --import
+          godot --headless --import
           godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests/rules -gexit
