@@ -1,0 +1,103 @@
+# Beam release workflow, called from a game repo on a version tag.
+# Gates: rule tests, desktop + web export, web smoke test.
+# Ships: desktop builds to GitHub Releases, web build as a workflow artifact.
+
+name: Beam release
+
+on:
+  workflow_call:
+    inputs:
+      godot_version:
+        description: Godot version to build with, without the "-stable" suffix (e.g. 4.7.2)
+        required: true
+        type: string
+      game_name:
+        description: Slug used in build file names (e.g. my-game)
+        required: true
+        type: string
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      GODOT_VERSION: ${{ inputs.godot_version }}
+      GAME: ${{ inputs.game_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Godot and export templates
+        run: |
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          curl -fsSLo godot.zip "$base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q godot.zip
+          sudo mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" /usr/local/bin/godot
+          curl -fsSLo templates.tpz "$base/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          unzip -q templates.tpz
+          dest="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          mkdir -p "$dest"
+          mv templates/* "$dest/"
+          rm -rf godot.zip templates.tpz templates
+
+      - name: Stamp version from tag
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          sed -i "s|^config/version=.*|config/version=\"${version}\"|" project.godot
+          grep '^config/version=' project.godot
+
+      - name: Import project
+        run: godot --headless --import
+
+      - name: "Gate: rule tests"
+        run: |
+          if [ ! -f addons/gut/gut_cmdln.gd ]; then
+            echo "GUT is not installed in addons/gut; rule tests are a required gate." >&2
+            exit 1
+          fi
+          godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests/rules -gexit
+
+      - name: "Gate: export builds"
+        run: |
+          mkdir -p build/web build/windows build/linux build/macos
+          godot --headless --export-release "Web" build/web/index.html
+          godot --headless --export-release "Windows Desktop" "build/windows/${GAME}.exe"
+          godot --headless --export-release "Linux" "build/linux/${GAME}.x86_64"
+          godot --headless --export-release "macOS" "build/macos/${GAME}.zip"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: "Gate: web smoke test"
+        run: |
+          npm install --no-save @playwright/test
+          npx playwright install --with-deps chromium
+          python3 -m http.server 8000 -d build/web > /dev/null 2>&1 &
+          sleep 2
+          BEAM_WEB_URL=http://localhost:8000/ npx playwright test tests/web
+
+      - name: Package desktop builds
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          mkdir -p dist
+          (cd build/windows && zip -qr "../../dist/${GAME}-${tag}-windows.zip" .)
+          (cd build/linux && zip -qr "../../dist/${GAME}-${tag}-linux.zip" .)
+          cp "build/macos/${GAME}.zip" "dist/${GAME}-${tag}-macos.zip"
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/*.zip --title "$GITHUB_REF_NAME" --generate-notes
+
+      - name: Upload web build
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-${{ github.ref_name }}
+          path: build/web
+
+      - name: Upload smoke-test screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-${{ github.ref_name }}
+          path: test-results
+          if-no-files-found: ignore

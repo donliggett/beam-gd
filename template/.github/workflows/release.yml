@@ -1,0 +1,15 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    uses: donliggett/beam-gd/.github/workflows/release.yml@v0.1.0
+    with:
+      godot_version: "4.7.2"
+      game_name: __GAME_NAME__
