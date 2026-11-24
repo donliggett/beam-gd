@@ -1,0 +1,16 @@
+{
+  "path": "addons",
+  "cache": ".addons",
+  "addons": {
+    "beam": {
+      "url": "https://github.com/donliggett/beam-gd",
+      "checkout": "__BEAM_VERSION__",
+      "subfolder": "addons/beam"
+    },
+    "gut": {
+      "url": "https://github.com/bitwes/Gut",
+      "checkout": "v9.7.1",
+      "subfolder": "addons/gut"
+    }
+  }
+}

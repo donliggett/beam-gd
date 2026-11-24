@@ -3,3 +3,7 @@ build/
 dist/
 node_modules/
 test-results/
+
+# Installed from addons.json; run tools/addons.gd to restore.
+/addons/
+/.addons/

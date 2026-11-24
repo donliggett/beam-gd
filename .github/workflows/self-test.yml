@@ -1,0 +1,46 @@
+# Builds a game from this checkout of Beam's template and runs its tests,
+# with the Beam addon taken from this checkout rather than a published tag.
+
+name: Self-test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  self-test:
+    runs-on: ubuntu-latest
+    env:
+      GODOT_VERSION: "4.7.2"
+      GAME_DIR: ${{ github.workspace }}/../self-test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Godot
+        run: |
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          curl -fsSLo godot.zip "$base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q godot.zip
+          sudo mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" /usr/local/bin/godot
+          rm godot.zip
+
+      - name: Create a game from the template
+        run: ./tools/new-game.sh self-test "$GAME_DIR"
+
+      - name: Point the game at this checkout of Beam
+        run: |
+          python3 - "$GAME_DIR/addons.json" "$GITHUB_WORKSPACE" <<'PY'
+          import json, sys
+          path, beam = sys.argv[1], sys.argv[2]
+          manifest = json.load(open(path))
+          manifest["addons"]["beam"] = {"url": beam, "source": "local", "subfolder": "addons/beam"}
+          json.dump(manifest, open(path, "w"), indent=2)
+          PY
+
+      - name: Install addons, import, run tests
+        working-directory: ${{ env.GAME_DIR }}
+        run: |
+          godot --headless -s res://tools/addons.gd
+          godot --headless --import
+          godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests/rules -gexit

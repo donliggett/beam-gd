@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Creates a new game repo from Beam's template.
+# Creates a new game repo from Beam's template, pinned to this version of Beam.
 # Usage: ./tools/new-game.sh my-game ../my-game
 
 set -euo pipefail
@@ -22,15 +22,19 @@ if [ -e "$dest" ]; then
 fi
 
 beam="$(cd "$(dirname "$0")/.." && pwd)"
+version="$(sed -n 's/^version="\(.*\)"/\1/p' "$beam/addons/beam/plugin.cfg" | head -n 1)"
+if [ -z "$version" ]; then
+  echo "cannot read Beam's version from addons/beam/plugin.cfg" >&2
+  exit 1
+fi
+beam_version="v$version"
 
 cp -R "$beam/template" "$dest"
-mkdir -p "$dest/addons"
-cp -R "$beam/addons/beam" "$dest/addons/beam"
 
-for file in project.godot export_presets.cfg .github/workflows/release.yml docs/spec.md README.md; do
-  sed -i.bak "s/__GAME_NAME__/$name/g" "$dest/$file"
+for file in project.godot export_presets.cfg addons.json .github/workflows/release.yml docs/spec.md README.md; do
+  sed -i.bak -e "s/__GAME_NAME__/$name/g" -e "s/__BEAM_VERSION__/$beam_version/g" "$dest/$file"
   rm "$dest/$file.bak"
 done
 
-echo "Created $name at $dest"
-echo "Next: add GUT to addons/gut, then run the rule tests."
+echo "Created $name at $dest (Beam $beam_version)"
+echo "Next, from the new folder: godot --headless -s res://tools/addons.gd"

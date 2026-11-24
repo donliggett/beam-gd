@@ -44,6 +44,12 @@ jobs:
           sed -i "s|^config/version=.*|config/version=\"${version}\"|" project.godot
           grep '^config/version=' project.godot
 
+      - name: Install pinned addons
+        run: |
+          if [ -f addons.json ]; then
+            godot --headless -s res://tools/addons.gd
+          fi
+
       - name: Import project
         run: godot --headless --import
 

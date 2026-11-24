@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   release:
-    uses: donliggett/beam-gd/.github/workflows/release.yml@v0.1.0
+    uses: donliggett/beam-gd/.github/workflows/release.yml@__BEAM_VERSION__
     with:
       godot_version: "4.7.2"
       game_name: __GAME_NAME__
