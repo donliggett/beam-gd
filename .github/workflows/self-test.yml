@@ -44,4 +44,9 @@ jobs:
           godot --headless -s res://tools/addons.gd
           godot --headless --import
           godot --headless --import
-          godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests/rules -gexit
+          set -o pipefail
+          godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests/rules -gexit 2>&1 | tee gut.log
+          if grep -qE "Ignoring script|Parse Error|Compile Error" gut.log; then
+            echo "A test script failed to load; see the log above." >&2
+            exit 1
+          fi

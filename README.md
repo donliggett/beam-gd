@@ -68,7 +68,7 @@ A game's addons are listed in `addons.json` and installed into `addons/`, which 
 ```json
 "beam": {
   "url": "https://github.com/donliggett/beam-gd",
-  "checkout": "v0.2.1",
+  "checkout": "v0.2.2",
   "subfolder": "addons/beam"
 }
 ```
